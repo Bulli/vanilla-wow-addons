@@ -499,7 +499,11 @@ function MonkeyQuest_Refresh()
 
 
 	if (MonkeyQuestConfig[MonkeyQuest.m_strPlayer].m_bMinimized == false) then
-
+		
+		if IsAddOnLoaded("ShaguDB") and ShaguDB_loaded then
+			ShaguDB_MAP_NOTES = {};
+		end
+		
 		for i = 1, iNumEntries, 1 do
 			-- strQuestLogTitleText		the title text of the quest, may be a header (ex. Wetlands)
 			-- strQuestLevel			the level of the quest
@@ -593,6 +597,70 @@ function MonkeyQuest_Refresh()
 						-- update hide quests buttons
 						if (MonkeyQuestConfig[MonkeyQuest.m_strPlayer].m_aQuestList[strQuestLogTitleText].m_bChecked == true) then
 							getglobal("MonkeyQuestHideButton" .. iButtonId):SetChecked(1);
+							
+							if IsAddOnLoaded("ShaguDB") and IsAddOnLoaded("Cartographer") and IsAddOnLoaded("ShaguQuest") and ShaguDB_loaded then
+								--quest in cartographer anzeigen
+								
+								local questLogID = 1;
+								
+								while (GetQuestLogTitle(questLogID) ~= nil) do
+									questLogID = questLogID + 1;
+									
+									local questTitle, level, questTag, isHeader, isCollapsed, isComplete = GetQuestLogTitle(questLogID);
+									
+									if (not isHeader and questTitle ~= nil) then
+										
+										if questTitle == strQuestLogTitleText then
+										
+											local numObjectives = GetNumQuestLeaderBoards(questLogID);
+											
+											if (numObjectives ~= nil) then
+												
+												-- quest data
+												if (questDB[questTitle] ~= nil) then
+													for monsterName, monsterDrop in pairs(questDB[questTitle]) do
+														if (spawnDB[monsterName] ~= nil and strfind(spawnDB[monsterName]["faction"], faction) ~= nil) then
+															ShaguDB_searchMonster(monsterName,questTitle,true);
+														end
+													end
+												end
+												
+												for i=1, numObjectives, 1 do
+													local text, type, finished = GetQuestLogLeaderBoard(i, questLogID);
+													local i, j, itemName, numItems, numNeeded = strfind(text, "(.*):%s*([%d]+)%s*/%s*([%d]+)");
+													
+													if (not finished) then
+														-- spawn data
+														if (type == "monster") then
+															-- enGB
+															local i, j, monsterName = strfind(itemName, "(.*) killed");
+															ShaguDB_searchMonster(monsterName,questTitle);
+															
+															local i, j, monsterName = strfind(itemName, "(.*) slain");
+															ShaguDB_searchMonster(monsterName,questTitle);
+															
+															-- deDE
+															local i, j, monsterName = strfind(itemName, "(.*) getötet");
+															ShaguDB_searchMonster(monsterName,questTitle);
+															
+															-- whatever
+															local i, j, monsterName = strfind(itemName, "(.*)");
+															ShaguDB_searchMonster(monsterName,questTitle);
+														end
+														
+														-- item data
+														if (type == "item") then
+															ShaguDB_searchItem(itemName,questTitle, true);
+															ShaguDB_searchVendor(itemName,questTitle);
+														end
+													end
+												end
+											end
+										end
+									end
+									
+								end
+							end
 						else
 							getglobal("MonkeyQuestHideButton" .. iButtonId):SetChecked(0);
 						end
@@ -720,6 +788,11 @@ function MonkeyQuest_Refresh()
 					end
 				end
 			end
+		end
+		
+		if IsAddOnLoaded("ShaguDB") and IsAddOnLoaded("Cartographer") and IsAddOnLoaded("ShaguQuest") and ShaguDB_loaded then
+			ShaguDB_CleanMap();
+			ShaguDB_ShowMap(true);
 		end
 	end
 
